@@ -1,0 +1,70 @@
+scm:
+    type: git
+    repository: https://github.com/nunogrl/secrets-sample.git
+    rev: master
+
+buildEvery:
+    # build At:
+    #   - minute 0 past every 2nd hour
+    #   - from 9 through 17
+    #   - on every day-of-week from Monday through Friday.”
+    time: "0 9-17/2 * * 1-5"
+    #but only if there is scm changes
+    withScmChangesOnly: true
+
+steps:
+    - name: test if there are any actions needed
+      cmd: |
+        if [ ! -z "$(gpg --list-secret-keys --keyid-format=long | grep "bot-dev@nunogrl.com")" ] ; then
+          echo "SKIP=true" > env.skipgpg
+          # echo -e "\033[1m\033[38;5;11mXXXXXXXXXXXXXXXXXXXXXXXXXXX\033[0m"
+          echo -e "\033[1m\033[38;5;11mSkipping key creation\033[0m"
+        fi
+
+    - name: create batch gpg file
+      cmd: |
+        if [ ! -f ./env.skipgpg  ]; then
+        echo -e "\033[1m\033[38;5;11mCreation of batch file for unattended key creation\033[0m"
+        cat << EOF > gpg.batch
+        %no-protection
+        Key-Type: RSA
+        Key-Length: 4096
+        Subkey-Type: RSA
+        Subkey-Length: 4096
+        Name-Real: CI/CD Bot
+        Name-Comment: Server Usage
+        Name-Email: bot-dev@nunogrl.com
+        Expire-Date: 0
+        %commit
+        EOF
+        fi
+
+    - name: create the keypair
+      cmd: |
+        if [ ! -f ./env.skipgpg  ]; then 
+          echo -e "\033[1m\033[38;5;11mCreating key pair\033[0m"
+          gpg --batch --generate-key gpg.batch
+          chmod 700 ~/.gnupg
+          chmod 700 ~/.ssh
+        fi
+    
+    - name: update passwords
+      cmd: | 
+        if [ -f ~/.password-store/.gpg-id ] ; then
+          echo -e "\033[1m\033[38;5;11mUpdating secrets\033[0m"
+          pass git pull
+        else
+          echo -e "\033[1m\033[38;5;11mGetting Secrets\033[0m"
+          echo "SECRETS_REPO: ${SECRETS_REPO}"
+          echo "GIT_SSL_NO_VERIFY=true git clone ${SECRETS_REPO} /root/.password-store"
+          GIT_SSL_NO_VERIFY=true git clone ${SECRETS_REPO} /root/.password-store
+          echo -e "\033[1m\033[38;5;11mEnsure you import this key\033[0m"
+          gpg --armour --export bot-dev@nunogrl.com
+        fi
+
+    - name: show password tree
+      cmd: |
+        echo -e "\033[1m\033[38;5;11mPasswordstore output:\033[0m"
+        pass
+
+
