@@ -46,6 +46,7 @@ steps:
           gpg --batch --generate-key gpg.batch
           chmod 700 ~/.gnupg
           chmod 700 ~/.ssh
+          gpg -K
         fi
     
     - name: update passwords
@@ -59,7 +60,7 @@ steps:
           echo "GIT_SSL_NO_VERIFY=true git clone ${SECRETS_REPO} /root/.password-store"
           GIT_SSL_NO_VERIFY=true git clone ${SECRETS_REPO} /root/.password-store
           echo -e "\033[1m\033[38;5;11mEnsure you import this key\033[0m"
-          gpg --armour --export bot-dev@nunogrl.com
+          gpg --armour --export ${CICD_MAIL}
         fi
 
     - name: show password tree
