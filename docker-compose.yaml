@@ -1,0 +1,20 @@
+---
+version: "2.1"
+services:
+  nci:
+    image: nunogrl/node-ci:latest
+    # build:
+    #   context: .
+    container_name: nci-docker
+    hostname: nci-tests
+    environment:
+      - PASSWORD_STORE_GPG_OPTS=--armor
+    volumes:
+      - ./ssh:/root/.ssh
+      - ./gnupg:/root/.gnupg
+      - ./secrets:/root/.password-store
+      - ./data:/var/nci/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "3007:3000"
+    restart: always
