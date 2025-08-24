@@ -3,12 +3,13 @@ version: "2.1"
 services:
   nci:
     image: nunogrl/node-ci:latest
-    # build:
-    #   context: .
     container_name: nci-docker
     hostname: nci-tests
     environment:
+      - SECRETS_REPO=https://github.com/nunogrl/secrets-sample.git
       - PASSWORD_STORE_GPG_OPTS=--armor
+      - CICD_ID=Toaster
+      - CICD_MAIL=toaster@nunogrl.com
     volumes:
       - ./ssh:/root/.ssh
       - ./gnupg:/root/.gnupg
