@@ -15,34 +15,27 @@ buildEvery:
 steps:
     - name: test if there are any actions needed
       cmd: |
-        if [ ! -z "$(gpg --list-secret-keys --keyid-format=long | grep "bot-dev@nunogrl.com")" ] ; then
-          echo "SKIP=true" > env.skipgpg
-          # echo -e "\033[1m\033[38;5;11mXXXXXXXXXXXXXXXXXXXXXXXXXXX\033[0m"
+        echo -e "\033[1m\033[38;5;11mTesting if keys are present ...\033[0m"
+        if [ ! -z "$(gpg --list-secret-keys --keyid-format=long | grep "$(echo ${CICD_MAIL})" )" ] ; then
           echo -e "\033[1m\033[38;5;11mSkipping key creation\033[0m"
-        fi
-
-    - name: create batch gpg file
-      cmd: |
-        if [ ! -f ./env.skipgpg  ]; then
-        echo -e "\033[1m\033[38;5;11mCreation of batch file for unattended key creation\033[0m"
-        cat << EOF > gpg.batch
-        %no-protection
-        Key-Type: RSA
-        Key-Length: 4096
-        Subkey-Type: RSA
-        Subkey-Length: 4096
-        Name-Real: ${CICD_ID}
-        Name-Comment: Server Usage
-        Name-Email: ${CICD_MAIL}
-        Expire-Date: 0
-        %commit
+        else
+          echo -e "\033[1m\033[38;5;11mFix GPG and SSH permissions\033[0m"
+          chmod 700 ~/.gnupg
+          chmod 700 ~/.ssh
+          echo -e "\033[1m\033[38;5;11mCreation of batch file for unattended key creation\033[0m"
+          cat <<- EOF > gpg.batch
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 4096
+          Subkey-Type: RSA
+          Subkey-Length: 4096
+          Name-Real: ${CICD_ID}
+          Name-Comment: Server Usage
+          Name-Email: ${CICD_MAIL}
+          Expire-Date: 0
+          %commit
         EOF
-        fi
-
-    - name: create the keypair
-      cmd: |
-        if [ ! -f ./env.skipgpg  ]; then 
-          echo -e "\033[1m\033[38;5;11mCreating key pair\033[0m"
+          echo -e "\033[1m\033[38;5;11mCreation of key pair and ensuring the right permissions\033[0m"
           gpg --batch --generate-key gpg.batch
           chmod 700 ~/.gnupg
           chmod 700 ~/.ssh
@@ -67,5 +60,5 @@ steps:
       cmd: |
         echo -e "\033[1m\033[38;5;11mPasswordstore output:\033[0m"
         pass
-
-
+        echo -e "\033[1m\033[38;5;11mTestin decryption of a password:\033[0m"
+        find ~/.password-store -name '*.gpg' | head -n1 | xargs -I{} cat {}| gpg -d > /dev/null
