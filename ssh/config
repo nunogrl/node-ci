@@ -1,0 +1,5 @@
+Host github.com
+    IdentityFile ~/.ssh/id_rsa
+    IdentitiesOnly yes
+    AddKeysToAgent yes
+    stricthostkeychecking no
